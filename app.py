@@ -228,8 +228,8 @@ elif option == "SVC Implementation":
     # -------------------------------------------------
     scaler = StandardScaler()
 
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
     # -------------------------------------------------
     # MODEL SELECTION
@@ -254,12 +254,12 @@ elif option == "SVC Implementation":
     # -------------------------------------------------
     # TRAIN MODEL
     # -------------------------------------------------
-    model.fit(X_train, y_train)
+    model.fit(X_train_scaled, y_train)
 
     # -------------------------------------------------
     # PREDICTIONS
     # -------------------------------------------------
-    y_pred = model.predict(X_test)
+    y_pred = model.predict(X_test_scaled)
 
     # -------------------------------------------------
     # EVALUATION
@@ -290,6 +290,54 @@ elif option == "SVC Implementation":
     report = classification_report(y_test, y_pred)
     st.text(report)
 
+    # =================================================
+    # USER INPUT PREDICTION
+    # =================================================
+    st.markdown("---")
+    st.subheader("🔍 Predict on Your Own Input")
+    st.write("Enter values for each feature below to get a prediction:")
+
+    feature_names = data1.feature_names
+    feature_means = pd.DataFrame(X, columns=feature_names).mean()
+    feature_mins  = pd.DataFrame(X, columns=feature_names).min()
+    feature_maxs  = pd.DataFrame(X, columns=feature_names).max()
+
+    # Arrange inputs in 3 columns for better layout
+    user_inputs = {}
+    num_features = len(feature_names)
+    cols_per_row = 3
+    feature_list = list(feature_names)
+
+    for i in range(0, num_features, cols_per_row):
+        cols = st.columns(cols_per_row)
+        for j, col in enumerate(cols):
+            if i + j < num_features:
+                fname = feature_list[i + j]
+                with col:
+                    user_inputs[fname] = st.number_input(
+                        label=fname,
+                        min_value=float(feature_mins[fname]),
+                        max_value=float(feature_maxs[fname]),
+                        value=float(feature_means[fname]),
+                        format="%.4f",
+                        key=f"svc_{fname}"
+                    )
+
+    if st.button("Predict Cancer Type", key="svc_predict_btn"):
+        input_array = np.array([[user_inputs[f] for f in feature_names]])
+        input_scaled = scaler.transform(input_array)
+
+        prediction = model.predict(input_scaled)[0]
+        probability = model.predict_proba(input_scaled)[0]
+
+        label = "Benign (Non-Cancerous)" if prediction == 1 else "Malignant (Cancerous)"
+        color = "green" if prediction == 1 else "red"
+
+        st.markdown(f"### Prediction: :{color}[{label}]")
+        st.info(
+            f"Confidence — Malignant: {probability[0]*100:.1f}%  |  Benign: {probability[1]*100:.1f}%"
+        )
+
 # =====================================================
 # SVR IMPLEMENTATION
 # =====================================================
@@ -319,7 +367,9 @@ elif option == "SVR Implementation":
         # DATASET INFO
         # ---------------------------------------------
         st.subheader("Dataset Information")
-        st.write(df.info())
+        buffer = []
+        df.info(buf=None)
+        st.write(df.dtypes)
 
         st.subheader("Statistical Description")
         st.write(df.describe())
@@ -384,7 +434,9 @@ elif option == "SVR Implementation":
             df_clean.columns
         )
 
-        X = df_clean.drop(columns=[target_column])
+        feature_columns = [c for c in df_clean.columns if c != target_column]
+
+        X = df_clean[feature_columns]
         y = df_clean[target_column]
 
         # ---------------------------------------------
@@ -402,8 +454,8 @@ elif option == "SVR Implementation":
         # ---------------------------------------------
         scaler = StandardScaler()
 
-        X_train = scaler.fit_transform(X_train)
-        X_test = scaler.transform(X_test)
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
 
         # ---------------------------------------------
         # SVR MODEL
@@ -413,12 +465,12 @@ elif option == "SVR Implementation":
         # ---------------------------------------------
         # TRAIN MODEL
         # ---------------------------------------------
-        model.fit(X_train, y_train)
+        model.fit(X_train_scaled, y_train)
 
         # ---------------------------------------------
         # PREDICTIONS
         # ---------------------------------------------
-        y_pred = model.predict(X_test)
+        y_pred = model.predict(X_test_scaled)
 
         # ---------------------------------------------
         # EVALUATION
@@ -439,7 +491,7 @@ elif option == "SVR Implementation":
         st.subheader("Actual vs Predicted")
 
         result_df = pd.DataFrame({
-            'Actual': y_test,
+            'Actual': y_test.values,
             'Predicted': y_pred
         })
 
@@ -451,6 +503,45 @@ elif option == "SVR Implementation":
         ax3.set_ylabel("Predicted Values")
         ax3.set_title("Actual vs Predicted")
         st.pyplot(fig3)
+
+        # =============================================
+        # USER INPUT PREDICTION
+        # =============================================
+        st.markdown("---")
+        st.subheader("🔍 Predict on Your Own Input")
+        st.write(f"Enter feature values to predict **{target_column}**:")
+
+        user_inputs_svr = {}
+        cols_per_row = 3
+
+        for i in range(0, len(feature_columns), cols_per_row):
+            cols = st.columns(cols_per_row)
+            for j, col in enumerate(cols):
+                if i + j < len(feature_columns):
+                    fname = feature_columns[i + j]
+                    col_min = float(df_clean[fname].min())
+                    col_max = float(df_clean[fname].max())
+                    col_mean = float(df_clean[fname].mean())
+                    with col:
+                        user_inputs_svr[fname] = st.number_input(
+                            label=fname,
+                            min_value=col_min,
+                            max_value=col_max,
+                            value=col_mean,
+                            format="%.4f",
+                            key=f"svr_{fname}"
+                        )
+
+        if st.button("Predict Value", key="svr_predict_btn"):
+            input_array = np.array([[user_inputs_svr[f] for f in feature_columns]])
+            input_scaled = scaler.transform(input_array)
+
+            prediction = model.predict(input_scaled)[0]
+
+            st.markdown(f"### Predicted **{target_column}**: `{prediction:.4f}`")
+            st.info(
+                f"This prediction is based on the SVR model trained on your uploaded dataset."
+            )
 
     else:
         st.warning("Please upload a CSV file.")
