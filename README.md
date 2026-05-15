@@ -112,12 +112,11 @@ Predict continuous numerical values.
 | File Name | Description |
 |-----------|-------------|
 | app.py | Streamlit Application |
-| SVC.ipynb | SVC Model Notebook |
-| svr.ipynb | SVR Model Notebook |
-| TEST11.csv | Dataset for SVR |
+| classification/SVC.ipynb | SVC Classification Model Notebook |
+| regression/svr.ipynb | SVR Regression Model Notebook |
+| regression/test.csv | Dataset for SVR |
 | requirements.txt | Required Libraries |
 | README.md | Project Documentation |
-
 ---
 
 # Technologies Used
